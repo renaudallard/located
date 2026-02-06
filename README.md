@@ -25,11 +25,11 @@ make
 curl -X POST http://localhost:8080/api/register \
   -d '{"id":"phone1", "token":"fcm-tok", "platform":"android", "name":"My Phone"}'
 
-# list devices
-curl http://localhost:8080/api/devices
+# list devices (api_key required if set in config)
+curl -H "Authorization: Bearer change-me" http://localhost:8080/api/devices
 
 # locate a device (requires FCM/APNs config and a real device)
-curl -X POST http://localhost:8080/api/locate/phone1
+curl -X POST -H "Authorization: Bearer change-me" http://localhost:8080/api/locate/phone1
 
 # unregister
 curl -X DELETE http://localhost:8080/api/register/phone1
