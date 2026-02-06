@@ -3,12 +3,15 @@
 #include <string.h>
 #include <signal.h>
 
+#include <curl/curl.h>
+
 #include "config.h"
 #include "device_db.h"
 #include "http_server.h"
 #include "routes.h"
+#include "pending.h"
 
-#define VERSION "0.1.0"
+#define VERSION "0.2.0"
 #define PROG    "located"
 
 static void usage(void)
@@ -19,7 +22,7 @@ static void usage(void)
 		"Commands:\n"
 		"  daemon, -d      Start the HTTP server\n"
 		"  devices         List registered devices\n"
-		"  locate <id>     Locate a device (Phase 2)\n"
+		"  locate <id>     Locate a device\n"
 		"  help, -h        Show this help\n"
 		"  version, -v     Show version\n"
 		"\n"
@@ -39,11 +42,14 @@ static const char *find_config_path(int argc, char **argv)
 
 static int cmd_daemon(config_t *cfg)
 {
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	pending_init();
+
 	sqlite3 *db;
 	if (db_open(&db, cfg->db_path) != 0)
 		return 1;
 
-	route_ctx_t ctx = { .db = db, .api_key = cfg->api_key };
+	route_ctx_t ctx = { .db = db, .cfg = cfg };
 
 	struct MHD_Daemon *d = http_server_start(cfg->listen_port, &ctx);
 	if (!d) {
@@ -66,6 +72,7 @@ static int cmd_daemon(config_t *cfg)
 
 	http_server_stop(d);
 	db_close(db);
+	curl_global_cleanup();
 	return 0;
 }
 

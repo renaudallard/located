@@ -1,4 +1,4 @@
-.TH LOCATED 1 "2025-02-06" "0.1.0" "User Commands"
+.TH LOCATED 1 "2025-02-06" "0.2.0" "User Commands"
 .SH NAME
 located \- device location tracking server
 .SH SYNOPSIS
@@ -8,7 +8,9 @@ located \- device location tracking server
 .SH DESCRIPTION
 .B located
 is a lightweight HTTP server for registering and locating mobile devices.
-It stores device registrations in a SQLite database and exposes a JSON API.
+It stores device registrations in a SQLite database, sends push notifications
+via FCM (Android) and APNs (iOS) to trigger location lookups, and returns
+GPS coordinates in real time. No location history is stored.
 .SH COMMANDS
 .TP
 .BR daemon ", " \-d
@@ -22,6 +24,7 @@ Requires a running daemon; uses curl to query the API.
 .BI locate " id"
 Request location of the device with the given
 .IR id .
+Sends a push notification to the device and waits for a GPS response.
 Requires a running daemon.
 .TP
 .BR help ", " \-h
@@ -45,7 +48,37 @@ TCP port for the HTTP server (default: 8080).
 Path to the SQLite database file (default: ./devices.db).
 .TP
 .B api_key
-API key for authentication (not enforced in Phase 1).
+API key for authenticating admin endpoints (devices, locate).
+If not set, admin endpoints are open.
+.TP
+.B server_url
+Public URL of the server, sent to devices in push notifications
+so they can POST their location back.
+.TP
+.B locate_timeout
+Seconds to wait for a device to respond with its location (default: 30).
+.TP
+.B fcm.project_id
+Firebase project ID for sending Android push notifications.
+.TP
+.B fcm.service_account_key_path
+Path to the Firebase service account JSON key file.
+.TP
+.B apns.key_path
+Path to the APNs authentication key (.p8 file).
+.TP
+.B apns.key_id
+APNs key ID (10-character string from Apple Developer portal).
+.TP
+.B apns.team_id
+Apple Developer Team ID.
+.TP
+.B apns.bundle_id
+App bundle identifier.
+.TP
+.B apns.use_sandbox
+Use the APNs sandbox environment (default: true).
+Set to false for production.
 .SH API ENDPOINTS
 .TP
 .B POST /api/register
@@ -56,12 +89,55 @@ Optional:
 .BR name .
 Returns the device record including a generated
 .BR secret .
+The secret must be included in location callbacks via the
+.B X-Device-Secret
+header.
 .TP
 .B DELETE /api/register/<id>
 Unregister a device by its id.
 .TP
 .B GET /api/devices
 List all registered devices as a JSON array.
+Requires
+.B Authorization: Bearer <api_key>
+header if api_key is configured.
+.TP
+.B POST /api/locate/<id>
+Trigger a locate request. Sends a push notification to the device,
+waits up to
+.B locate_timeout
+seconds for the device to respond with GPS coordinates.
+Returns the location as JSON or a timeout error.
+Requires
+.B Authorization: Bearer <api_key>
+header if api_key is configured.
+.TP
+.B POST /api/location/<id>
+Device callback endpoint. The device POSTs its GPS coordinates
+after receiving a push notification. JSON body must include
+.BR request_id ", " lat ", and " lng .
+Optional:
+.BR accuracy .
+Requires
+.B X-Device-Secret
+header matching the device's secret.
+.SH SECURITY
+.TP
+Admin endpoints
+.RB ( /api/devices ", " /api/locate )
+require an API key in the
+.B Authorization: Bearer
+header when
+.B api_key
+is set in the config.
+.TP
+Device callback
+.RB ( /api/location )
+requires the device secret in the
+.B X-Device-Secret
+header.
+.TP
+Run behind a reverse proxy (nginx, caddy) for TLS termination in production.
 .SH FILES
 .TP
 .I /etc/located.json
@@ -76,6 +152,20 @@ Success.
 .TP
 .B 1
 Error (invalid arguments, config parse failure, database error, etc.).
+.SH KNOWN LIMITATIONS
+.TP
+.B iOS force-quit
+If the user swipes the app away, silent pushes will not wake it.
+.TP
+.B Aggressive Android OEMs
+Xiaomi, Huawei, and some Samsung models kill background services.
+Users may need to disable battery optimization.
+.TP
+.B No offline queuing
+If the device is off or has no internet, the request times out.
+.TP
+.B GPS cold start
+First fix after a long time can take 15\-30 seconds.
 .SH AUTHORS
 Written for the allardtrac project.
 .SH SEE ALSO

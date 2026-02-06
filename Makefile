@@ -1,12 +1,14 @@
 CC       = gcc
 CFLAGS   = -Wall -Wextra -pedantic -std=c11 -D_POSIX_C_SOURCE=200809L -O2 -Ivendor
-LDFLAGS  = -lmicrohttpd -lsqlite3 -lpthread
+LDFLAGS  = -lmicrohttpd -lsqlite3 -lpthread -lcurl -lssl -lcrypto
 
 PREFIX  ?= /usr/local
 BINDIR   = $(PREFIX)/bin
 MANDIR   = $(PREFIX)/share/man
 
-SRCS     = src/main.c src/config.c src/device_db.c src/http_server.c src/routes.c vendor/cJSON.c
+SRCS     = src/main.c src/config.c src/device_db.c src/http_server.c \
+           src/routes.c src/jwt.c src/push_fcm.c src/push_apns.c \
+           src/pending.c src/auth.c vendor/cJSON.c
 OBJS     = $(SRCS:.c=.o)
 BIN      = located
 

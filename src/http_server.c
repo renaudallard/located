@@ -74,11 +74,18 @@ static enum MHD_Result dispatch(void *cls, struct MHD_Connection *conn,
 	} else if (strcmp(method, "DELETE") == 0 &&
 		   strncmp(url, "/api/register/", 14) == 0 &&
 		   strlen(url) > 14) {
-		const char *id = url + 14;
-		ret = route_unregister(conn, ctx, id);
+		ret = route_unregister(conn, ctx, url + 14);
 	} else if (strcmp(method, "GET") == 0 &&
 		   strcmp(url, "/api/devices") == 0) {
 		ret = route_devices(conn, ctx);
+	} else if (strcmp(method, "POST") == 0 &&
+		   strncmp(url, "/api/locate/", 12) == 0 &&
+		   strlen(url) > 12) {
+		ret = route_locate(conn, ctx, url + 12);
+	} else if (strcmp(method, "POST") == 0 &&
+		   strncmp(url, "/api/location/", 14) == 0 &&
+		   strlen(url) > 14) {
+		ret = route_location(conn, ctx, url + 14, pd->data);
 	} else {
 		ret = respond_error(conn, MHD_HTTP_NOT_FOUND, "not found");
 	}
