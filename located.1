@@ -1,0 +1,83 @@
+.TH LOCATED 1 "2025-02-06" "0.1.0" "User Commands"
+.SH NAME
+located \- device location tracking server
+.SH SYNOPSIS
+.B located
+.I command
+.RI [ options ]
+.SH DESCRIPTION
+.B located
+is a lightweight HTTP server for registering and locating mobile devices.
+It stores device registrations in a SQLite database and exposes a JSON API.
+.SH COMMANDS
+.TP
+.BR daemon ", " \-d
+Start the HTTP server in the foreground.
+Blocks until SIGINT or SIGTERM is received.
+.TP
+.B devices
+List all registered devices.
+Requires a running daemon; uses curl to query the API.
+.TP
+.BI locate " id"
+Request location of the device with the given
+.IR id .
+Requires a running daemon.
+.TP
+.BR help ", " \-h
+Print usage information and exit.
+.TP
+.BR version ", " \-v
+Print version and exit.
+.SH OPTIONS
+.TP
+.BI \-c " path"
+Path to the JSON configuration file.
+May appear anywhere in the argument list.
+Default: uses built-in defaults (port 8080, db ./devices.db).
+.SH CONFIGURATION
+The config file is JSON with the following keys:
+.TP
+.B listen_port
+TCP port for the HTTP server (default: 8080).
+.TP
+.B db_path
+Path to the SQLite database file (default: ./devices.db).
+.TP
+.B api_key
+API key for authentication (not enforced in Phase 1).
+.SH API ENDPOINTS
+.TP
+.B POST /api/register
+Register a new device. JSON body must include
+.BR id ", " token ", and " platform
+(android or ios).
+Optional:
+.BR name .
+Returns the device record including a generated
+.BR secret .
+.TP
+.B DELETE /api/register/<id>
+Unregister a device by its id.
+.TP
+.B GET /api/devices
+List all registered devices as a JSON array.
+.SH FILES
+.TP
+.I /etc/located.json
+Default configuration file location (if no \-c given, built-in defaults are used).
+.TP
+.I ./devices.db
+Default SQLite database location.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+Error (invalid arguments, config parse failure, database error, etc.).
+.SH AUTHORS
+Written for the allardtrac project.
+.SH SEE ALSO
+.BR curl (1),
+.BR sqlite3 (1)
