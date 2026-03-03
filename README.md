@@ -1,4 +1,4 @@
-# allardtrac
+# located
 
 A lightweight device location tracking system. Sends push notifications to registered mobile devices, which wake up, grab a GPS fix, and report their coordinates back. No location history is stored.
 
